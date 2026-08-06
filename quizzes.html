@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samplomatic Quiz - Bloom's Taxonomy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0e1a, #1a1f35);
+            color: #e0e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(100, 150, 255, 0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 36px;
+            background: linear-gradient(135deg, #6fc3ff, #7b61ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            color: #8899bb;
+            margin-top: 10px;
+        }
+        .level-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .level-btn {
+            padding: 10px 20px;
+            border: 2px solid rgba(100, 150, 255, 0.15);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            color: #8899bb;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .level-btn:hover {
+            border-color: #6fc3ff;
+            color: #c0d0ff;
+            background: rgba(100, 150, 255, 0.05);
+        }
+        .level-btn.active {
+            border-color: #6fc3ff;
+            background: rgba(100, 150, 255, 0.1);
+            color: #6fc3ff;
+        }
+        .level-btn .badge {
+            display: inline-block;
+            background: rgba(100, 150, 255, 0.15);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 6px;
+            color: #8899bb;
+        }
+        .level-btn.active .badge {
+            background: rgba(100, 150, 255, 0.25);
+            color: #6fc3ff;
+        }
+        .level-btn.completed {
+            border-color: #28a745;
+        }
+        .level-btn.completed .badge {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+        .quiz-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(100, 150, 255, 0.06);
+        }
+        .progress-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6fc3ff, #7b61ff);
+            transition: width 0.5s;
+            border-radius: 2px;
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #8899bb;
+        }
+        .question-text {
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        .option {
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.04);
+            border: 2px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .option:hover {
+            border-color: rgba(100, 150, 255, 0.2);
+            background: rgba(255,255,255,0.06);
+        }
+        .option .letter {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .option.selected {
+            border-color: #6fc3ff;
+            background: rgba(100, 150, 255, 0.08);
+        }
+        .option.selected .letter {
+            background: #6fc3ff;
+            color: #0a0e1a;
+        }
+        .option.correct {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .option.correct .letter {
+            background: #28a745;
+            color: white;
+        }
+        .option.wrong {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        .option.wrong .letter {
+            background: #dc3545;
+            color: white;
+        }
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .feedback {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        .feedback.show {
+            display: block;
+        }
+        .feedback.correct {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.2);
+            color: #8ddfa0;
+        }
+        .feedback.wrong {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            color: #f8a5a5;
+        }
+        .feedback .explanation {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #8899bb;
+        }
+        .feedback .explanation strong {
+            color: #c0d0ff;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4a6cf7, #6c5ce7);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(74, 108, 247, 0.3);
+        }
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.05);
+            color: #b0c4e0;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #00b894, #00a381);
+            color: white;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 184, 148, 0.3);
+        }
+        .results {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .results .emoji {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .results .grade {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .results .score {
+            font-size: 18px;
+            color: #8899bb;
+            margin-bottom: 20px;
+        }
+        .results .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 30px 0;
+        }
+        .results .stat {
+            background: rgba(255,255,255,0.04);
+            padding: 16px;
+            border-radius: 10px;
+        }
+        .results .stat .number {
+            font-size: 24px;
+            font-weight: 600;
+            color: #6fc3ff;
+        }
+        .results .stat .label {
+            font-size: 12px;
+            color: #8899bb;
+            margin-top: 4px;
+        }
+        .hidden { display: none !important; }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .quiz-container { padding: 20px; }
+            .question-text { font-size: 17px; }
+            .header h1 { font-size: 26px; }
+            .level-btn { padding: 8px 14px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Samplomatic Mastery Quiz</h1>
+            <p>Interactive learning through Bloom's Taxonomy</p>
+        </div>
+
+        <!-- Level Selector -->
+        <div class="level-selector" id="levelSelector">
+            <!-- Generated by JS -->
+        </div>
+
+        <!-- Quiz Container -->
+        <div class="quiz-container" id="quizContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div id="quizContent">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // DATA
+        // ================================================================
+        const LEVELS = [
+            { id: 1, name: 'Remember', icon: '📝', description: 'Recall facts and concepts' },
+            { id: 2, name: 'Understand', icon: '📖', description: 'Explain ideas and concepts' },
+            { id: 3, name: 'Apply', icon: '🔧', description: 'Use information in new situations' },
+            { id: 4, name: 'Analyze', icon: '🔍', description: 'Draw connections among ideas' },
+            { id: 5, name: 'Evaluate', icon: '⚖️', description: 'Justify decisions' },
+            { id: 6, name: 'Create', icon: '🚀', description: 'Produce new or original work' }
+        ];
+
+        const QUESTIONS = {
+            1: [
+                {
+                    id: 'q1-1',
+                    question: 'What is a "box" in Samplomatic?',
+                    options: [
+                        'A container for quantum gates that can receive annotations',
+                        'A type of quantum gate',
+                        'A measurement technique',
+                        'A programming language'
+                    ],
+                    correct: 0,
+                    explanation: 'A box is a region of a circuit marked off as a unit that can receive annotations like Twirl, InjectNoise, or ChangeBasis.'
+                },
+                {
+                    id: 'q1-2',
+                    question: 'Which annotation randomizes a box\'s dressing?',
+                    options: ['InjectNoise', 'ChangeBasis', 'Twirl', 'Box'],
+                    correct: 2,
+                    explanation: 'Twirl annotation randomizes the box\'s dressing. It converts coherent noise into stochastic Pauli noise.'
+                },
+                {
+                    id: 'q1-3',
+                    question: 'What does InjectNoise annotation do?',
+                    options: [
+                        'Removes noise from the circuit',
+                        'Declares where a learned noise model should be applied',
+                        'Adds random gates to the circuit',
+                        'Measures the circuit output'
+                    ],
+                    correct: 1,
+                    explanation: 'InjectNoise declares that a learned noise channel will be applied at this location in the circuit.'
+                }
+            ],
+            2: [
+                {
+                    id: 'q2-1',
+                    question: 'Explain why boxing gates is important for error mitigation.',
+                    options: [
+                        'It makes the circuit smaller',
+                        'It allows different mitigation strategies for different gate types',
+                        'It removes all noise from the circuit',
+                        'It is required by Qiskit'
+                    ],
+                    correct: 1,
+                    explanation: 'Boxing allows us to group gates and apply different mitigation strategies to each group, which is important because different gates have different noise characteristics.'
+                },
+                {
+                    id: 'q2-2',
+                    question: 'What is the relationship between a Template and a Samplex?',
+                    options: [
+                        'They are the same thing',
+                        'Template is the circuit, Samplex is the parameter recipe',
+                        'Samplex is the circuit, Template is the parameter recipe',
+                        'They are both circuits'
+                    ],
+                    correct: 1,
+                    explanation: 'A Template is a parametric quantum circuit, while a Samplex is a recipe that determines how to fill those parameters at runtime.'
+                }
+            ],
+            3: [
+                {
+                    id: 'q3-1',
+                    question: 'You have a circuit with a noisy CZ gate. Which Samplomatic approach would you use?',
+                    options: [
+                        'Apply Twirl to the entire circuit',
+                        'Box the CZ gate and apply Twirl',
+                        'Use ChangeBasis on the whole circuit',
+                        'Apply InjectNoise to all gates'
+                    ],
+                    correct: 1,
+                    explanation: 'The best approach is to box the CZ gate specifically and apply Twirl annotation. This targets the noisy gate while leaving others unmodified.'
+                },
+                {
+                    id: 'q3-2',
+                    question: 'Arrange these steps in the correct order:',
+                    options: [
+                        'Build → Box → Annotate → Run',
+                        'Box → Annotate → Build → Run',
+                        'Annotate → Build → Box → Run',
+                        'Run → Build → Box → Annotate'
+                    ],
+                    correct: 1,
+                    explanation: 'The correct workflow is: Box the gates, apply annotations, build into template/samplex, then run with Executor.'
+                }
+            ],
+            4: [
+                {
+                    id: 'q4-1',
+                    question: 'Analyze the difference between Twirl and ChangeBasis. Which statement is true?',
+                    options: [
+                        'They both do the same thing',
+                        'Twirl reshapes noise, ChangeBasis changes measurement basis',
+                        'ChangeBasis reshapes noise, Twirl changes measurement basis',
+                        'They are both used for measurement mitigation'
+                    ],
+                    correct: 1,
+                    explanation: 'Twirl reshapes coherent noise into Pauli noise, while ChangeBasis rotates the measurement basis to reduce measurement bias.'
+                }
+            ],
+            5: [
+                {
+                    id: 'q5-1',
+                    question: 'A researcher proposes applying Twirl, InjectNoise, and ChangeBasis to every gate. Evaluate this approach.',
+                    options: [
+                        'Excellent - all techniques used together',
+                        'Overkill - resource intensive and may not be optimal',
+                        'Fine - it will definitely work',
+                        'Completely wrong approach'
+                    ],
+                    correct: 1,
+                    explanation: 'Applying all annotations everywhere is resource-intensive and may not be optimal. Different gates benefit from different strategies, and over-mitigation can introduce overhead.'
+                }
+            ],
+            6: [
+                {
+                    id: 'q6-1',
+                    question: 'Create a mitigation strategy for a 100-qubit circuit with coherent noise in CNOT gates and measurement bias.',
+                    options: [
+                        'Box CNOT gates with Twirl, measurement with ChangeBasis',
+                        'Apply everything to all gates',
+                        'Use only InjectNoise',
+                        'No mitigation needed'
+                    ],
+                    correct: 0,
+                    explanation: 'Box CNOT gates with Twirl for coherent noise, and apply ChangeBasis to measurement boxes for measurement bias. This targets each issue appropriately.'
+                }
+            ]
+        };
+
+        // ================================================================
+        // STATE
+        // ================================================================
+        let state = {
+            currentLevel: 1,
+            currentQuestionIndex: 0,
+            score: 0,
+            totalAnswered: 0,
+            completedLevels: new Set(),
+            selectedOption: null,
+            answered: false
+        };
+
+        // ================================================================
+        // RENDER FUNCTIONS
+        // ================================================================
+        function renderLevelSelector() {
+            const container = document.getElementById('levelSelector');
+            let html = '';
+            
+            LEVELS.forEach(level => {
+                const isActive = state.currentLevel === level.id;
+                const isCompleted = state.completedLevels.has(level.id);
+                const questionCount = (QUESTIONS[level.id] || []).length;
+                const answeredCount = questionCount; // Simplified for demo
+                
+                html += `
+                    <button class="level-btn ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"
+                            onclick="switchLevel(${level.id})">
+                        ${level.icon} ${level.name}
+                        <span class="badge">${answeredCount}/${questionCount}</span>
+                    </button>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderQuestion() {
+            const container = document.getElementById('quizContent');
+            const questions = QUESTIONS[state.currentLevel] || [];
+            
+            if (questions.length === 0) {
+                container.innerHTML = `
+                    <div class="results">
+                        <div class="emoji">🎉</div>
+                        <div class="grade">All questions completed!</div>
+                        <div class="score">Level ${state.currentLevel}: ${LEVELS[state.currentLevel-1].name}</div>
+                        <button class="btn btn-primary" onclick="switchLevel(${state.currentLevel + 1})" 
+                                ${state.currentLevel >= 6 ? 'disabled' : ''}>
+                            Next Level →
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (state.currentQuestionIndex >= questions.length) {
+                showLevelComplete();
+                return;
+            }
+            
+            const q = questions[state.currentQuestionIndex];
+            const total = questions.length;
+            const current = state.currentQuestionIndex + 1;
+            
+            // Update progress
+            document.getElementById('progressFill').style.width = `${(current / total) * 100}%`;
+            
+            let html = `
+                <div class="question-header">
+                    <span>Level ${state.currentLevel} - ${LEVELS[state.currentLevel-1].icon} ${LEVELS[state.currentLevel-1].name}</span>
+                    <span>Question ${current} of ${total}</span>
+                </div>
+                <div class="question-text">${q.question}</div>
+                <div class="options">
+            `;
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            q.options.forEach((option, index) => {
+                let className = 'option';
+                if (state.answered) {
+                    className += ' disabled';
+                    if (index === q.correct) className += ' correct';
+                    if (state.selectedOption === index && index !== q.correct) className += ' wrong';
+                    if (state.selectedOption === index) className += ' selected';
+                }
+                html += `
+                    <div class="${className}" onclick="selectOption(${index})" data-index="${index}">
+                        <span class="letter">${letters[index] || index}</span>
+                        <span>${option}</span>
+                    </div>
+                `;
+            });
+            
+            html += `
+                </div>
+                <div class="feedback ${state.answered ? 'show' : ''} ${state.answered && state.selectedOption === q.correct ? 'correct' : 'wrong'}">
+                    ${state.answered ? `
+                        <strong>${state.selectedOption === q.correct ? '✅ Correct!' : '❌ Incorrect'}</strong>
+                        <div class="explanation">${q.explanation}</div>
+                    ` : ''}
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" 
+                            ${!state.answered ? 'disabled' : ''}>
+                        ${state.currentQuestionIndex === questions.length - 1 ? '📊 See Results' : 'Next →'}
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetLevel()">🔄 Reset</button>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function showLevelComplete() {
+            const container = document.getElementById('quizContent');
+            const questions = QUESTIONS[state.currentLevel] || [];
+            const total = questions.length;
+            const level = LEVELS[state.currentLevel - 1];
+            
+            state.completedLevels.add(state.currentLevel);
+            renderLevelSelector();
+            
+            container.innerHTML = `
+                <div class="results">
+                    <div class="emoji">${state.score / total >= 0.7 ? '🎉' : '💪'}</div>
+                    <div class="grade">${level.name} Level Complete!</div>
+                    <div class="score">Score: ${state.score}/${total} (${Math.round((state.score/total)*100)}%)</div>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="number">${state.score}</div>
+                            <div class="label">Correct</div>
+                        </div>
+                        <div class="stat">
+                            <div class="number">${total - state.score}</div>
+                            <div class="label">Incorrect</div>
+                        </div>
+                        <div class="stat">
+                            <div class="number">${Math.round((state.score/total)*100)}%</div>
+                            <div class="label">Accuracy</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="switchLevel(${state.currentLevel + 1})"
+                            ${state.currentLevel >= 6 ? 'disabled' : ''}>
+                        ➡️ Next Level
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetLevel()">🔄 Retry</button>
+                </div>
+            `;
+        }
+
+        // ================================================================
+        // ACTIONS
+        // ================================================================
+        function switchLevel(levelId) {
+            if (levelId < 1 || levelId > 6) return;
+            if (levelId > state.currentLevel + 1 && !state.completedLevels.has(levelId - 1)) return;
+            
+            state.currentLevel = levelId;
+            state.currentQuestionIndex = 0;
+            state.selectedOption = null;
+            state.answered = false;
+            
+            renderLevelSelector();
+            renderQuestion();
+        }
+
+        function selectOption(index) {
+            if (state.answered) return;
+            
+            const questions = QUESTIONS[state.currentLevel] || [];
+            const q = questions[state.currentQuestionIndex];
+            
+            state.selectedOption = index;
+            state.answered = true;
+            
+            if (index === q.correct) {
+                state.score++;
+                state.totalAnswered++;
+            }
+            
+            renderQuestion();
+        }
+
+        function nextQuestion() {
+            if (!state.answered) return;
+            
+            const questions = QUESTIONS[state.currentLevel] || [];
+            state.currentQuestionIndex++;
+            state.selectedOption = null;
+            state.answered = false;
+            
+            renderQuestion();
+        }
+
+        function resetLevel() {
+            state.currentQuestionIndex = 0;
+            state.score = 0;
+            state.totalAnswered = 0;
+            state.selectedOption = null;
+            state.answered = false;
+            state.completedLevels.delete(state.currentLevel);
+            
+            renderLevelSelector();
+            renderQuestion();
+        }
+
+        // ================================================================
+        // KEYBOARD SHORTCUTS
+        // ================================================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '4') {
+                const index = parseInt(e.key) - 1;
+                selectOption(index);
+            }
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                nextQuestion();
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                resetLevel();
+            }
+        });
+
+        // ================================================================
+        // INIT
+        // ================================================================
+        renderLevelSelector();
+        renderQuestion();
+
+        console.log('🚀 Samplomatic Quiz System loaded!');
+        console.log('📖 Use number keys (1-4) to select answers');
+        console.log('⌨️  Press Enter/Space for next question');
+        console.log('🔄 Press R to reset current level');
+    </script>
+</body>
+</html>

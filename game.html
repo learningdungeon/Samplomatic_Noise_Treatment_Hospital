@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samplomatic Noise Matcher</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #0a0e14; color: #c8d6e5;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex; justify-content: center; align-items: center; padding: 20px;
+}
+.game-container {
+    width: 100%; max-width: 850px; background: #131820;
+    border-radius: 20px; border: 1px solid #1e2a3a; padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+h1 { text-align: center; font-size: 22px; margin-bottom: 4px; }
+h1 span { color: #4fc3f7; }
+.subtitle { text-align: center; font-size: 12px; color: #5c6a7d; margin-bottom: 8px; }
+.level-badge {
+    text-align: center; display: inline-block; margin: 0 auto 16px; 
+    padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    background: rgba(79,195,247,0.15); color: #4fc3f7;
+}
+.level-badge.code { background: rgba(255,152,0,0.15); color: #ffb74d; }
+.stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
+.stat { text-align: center; }
+.stat .val { font-size: 28px; font-weight: 700; color: #fff; }
+.stat .lbl { font-size: 10px; color: #5c6a7d; text-transform: uppercase; letter-spacing: 1px; }
+.patient-area {
+    background: rgba(255,255,255,0.02); border: 2px dashed #1e2a3a;
+    border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px;
+    min-height: 100px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; gap: 10px;
+}
+.patient-area .label { font-size: 10px; color: #5c6a7d; text-transform: uppercase; letter-spacing: 2px; }
+.patient-card {
+    background: rgba(255,23,68,0.08); border: 2px solid #ff1744;
+    border-radius: 14px; padding: 16px 24px; display: inline-block;
+    animation: popIn 0.3s ease-out;
+}
+.patient-card .name { font-size: 18px; font-weight: 700; color: #fff; }
+.patient-card .symptom { font-size: 13px; color: #ff6b6b; margin-top: 4px; }
+.patient-card .tags { display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+.tag { padding: 3px 10px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.tag.red { background: rgba(255,23,68,0.2); color: #ff6b6b; }
+.tag.blue { background: rgba(79,195,247,0.2); color: #4fc3f7; }
+.tag.purple { background: rgba(171,71,188,0.2); color: #ce93d8; }
+.tag.orange { background: rgba(255,152,0,0.2); color: #ffb74d; }
+.tag.green { background: rgba(0,230,118,0.2); color: #69f0ae; }
+.treatment-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .treatment-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 450px) { .treatment-grid { grid-template-columns: 1fr; } }
+.treatment-card {
+    background: rgba(255,255,255,0.03); border: 2px solid #1e2a3a;
+    border-radius: 14px; padding: 14px; cursor: pointer; transition: all 0.2s;
+    text-align: center; display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.treatment-card:hover { border-color: #4fc3f7; background: rgba(79,195,247,0.06); transform: translateY(-2px); }
+.treatment-card.correct { border-color: #00e676; background: rgba(0,230,118,0.1); animation: pulse-green 0.6s; }
+.treatment-card.wrong { border-color: #ff1744; background: rgba(255,23,68,0.1); animation: shake 0.4s; }
+.treatment-card .icon { font-size: 32px; }
+.treatment-card .name { font-weight: 700; font-size: 13px; color: #fff; }
+.treatment-card .samplomatic { font-size: 10px; color: #4fc3f7; }
+.treatment-card .treats { font-size: 9px; color: #5c6a7d; margin-top: 2px; }
+/* Code card style */
+.code-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 500px) { .code-grid { grid-template-columns: 1fr; } }
+.code-card {
+    background: rgba(0,0,0,0.3); border: 2px solid #1e2a3a;
+    border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.2s;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11px; color: #c8d6e5; text-align: left; line-height: 1.5;
+    overflow-x: auto; white-space: pre;
+}
+.code-card:hover { border-color: #ff9800; background: rgba(255,152,0,0.06); }
+.code-card.correct { border-color: #00e676; background: rgba(0,230,118,0.1); animation: pulse-green 0.6s; }
+.code-card.wrong { border-color: #ff1744; background: rgba(255,23,68,0.1); animation: shake 0.4s; }
+.code-card .kw { color: #4fc3f7; }
+.code-card .str { color: #69f0ae; }
+.code-card .cmt { color: #5c6a7d; }
+@keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes pulse-green { 0%,100% { box-shadow: 0 0 0 rgba(0,230,118,0); } 50% { box-shadow: 0 0 20px rgba(0,230,118,0.4); } }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.feedback {
+    text-align: center; margin-top: 14px; font-size: 14px; font-weight: 600;
+    min-height: 24px; transition: all 0.3s;
+}
+.feedback.correct { color: #00e676; }
+.feedback.wrong { color: #ff1744; }
+.learn { text-align: center; font-size: 11px; color: #5c6a7d; margin-top: 6px; min-height: 18px; line-height: 1.4; }
+.btn-row { display: flex; gap: 10px; margin-top: 16px; justify-content: center; flex-wrap: wrap; }
+.btn { padding: 10px 24px; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-next { background: linear-gradient(135deg, #4fc3f7, #29b6f6); color: #000; }
+.btn-next:hover { box-shadow: 0 6px 24px rgba(79,195,247,0.3); }
+.btn-skip { background: rgba(255,255,255,0.05); color: #c8d6e5; border: 1px solid #1e2a3a; }
+.btn-skip:hover { background: rgba(255,255,255,0.1); }
+.btn-reset { background: rgba(255,23,68,0.1); color: #ff6b6b; border: 1px solid rgba(255,23,68,0.2); }
+.btn-reset:hover { background: rgba(255,23,68,0.2); }
+.btn-level { background: rgba(255,152,0,0.1); color: #ffb74d; border: 1px solid rgba(255,152,0,0.2); }
+.btn-level:hover { background: rgba(255,152,0,0.2); }
+.complete-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    display: flex; justify-content: center; align-items: center; z-index: 100;
+}
+.complete-card {
+    background: #131820; border: 1px solid #1e2a3a; border-radius: 20px;
+    padding: 32px; text-align: center; max-width: 420px; width: 90%;
+}
+.complete-card .big { font-size: 48px; }
+.complete-card h2 { color: #fff; margin: 12px 0; }
+.complete-card p { color: #5c6a7d; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="game-container" id="gameContainer">
+    <h1><span>Samplomatic</span> Noise Matcher</h1>
+    <p class="subtitle" id="subtitle">Match the noise symptom to the correct treatment</p>
+    <div style="text-align:center;"><span class="level-badge" id="levelBadge">Level 1: Match Symptoms</span></div>
+
+    <div class="stats">
+        <div class="stat"><div class="val" id="scoreDisplay">0</div><div class="lbl">Score</div></div>
+        <div class="stat"><div class="val" id="roundDisplay">1</div><div class="lbl">Round</div></div>
+        <div class="stat"><div class="val" id="streakDisplay">0</div><div class="lbl">Streak</div></div>
+    </div>
+
+    <div class="patient-area" id="patientArea">
+        <span class="label">Incoming Patient</span>
+        <div class="patient-card" id="patientCard">
+            <div class="name" id="patientName">---</div>
+            <div class="symptom" id="patientSymptom">---</div>
+            <div class="tags" id="patientTags"></div>
+        </div>
+    </div>
+
+    <!-- Level 1: Treatment cards -->
+    <div class="treatment-grid" id="treatmentGrid">
+        <div class="treatment-card" data-dept="twirl">
+            <span class="icon">Twirl</span><span class="name">Twirl Therapy</span>
+            <span class="samplomatic">Twirl</span><span class="treats">Treats: coherent, drift</span>
+        </div>
+        <div class="treatment-card" data-dept="inject">
+            <span class="icon">Scan</span><span class="name">Diagnostic Scan</span>
+            <span class="samplomatic">InjectNoise</span><span class="treats">Treats: unknown, crosstalk</span>
+        </div>
+        <div class="treatment-card" data-dept="basis">
+            <span class="icon">Rotate</span><span class="name">Repositioning</span>
+            <span class="samplomatic">ChangeBasis</span><span class="treats">Treats: readout, measurement</span>
+        </div>
+        <div class="treatment-card" data-dept="learner">
+            <span class="icon">Lab</span><span class="name">Pathology Lab</span>
+            <span class="samplomatic">NoiseLearnerV3</span><span class="treats">Treats: multi-layer, deep</span>
+        </div>
+        <div class="treatment-card" data-dept="pna">
+            <span class="icon">Plan</span><span class="name">Treatment Plan</span>
+            <span class="samplomatic">PNA</span><span class="treats">Treats: utility-scale, global</span>
+        </div>
+        <div class="treatment-card" data-dept="slc">
+            <span class="icon">Target</span><span class="name">Targeted Therapy</span>
+            <span class="samplomatic">SLC</span><span class="treats">Treats: local, lightcone</span>
+        </div>
+    </div>
+
+    <!-- Level 2: Code cards (hidden initially) -->
+    <div class="code-grid" id="codeGrid" style="display:none;"></div>
+
+    <div class="feedback" id="feedback"></div>
+    <div class="learn" id="learn"></div>
+
+    <div class="btn-row">
+        <button class="btn btn-reset" id="btnReset">Reset Game</button>
+        <button class="btn btn-skip" id="btnSkip">Skip</button>
+        <button class="btn btn-level" id="btnSwitchLevel">Switch to Code Level</button>
+        <button class="btn btn-next" id="btnNext" style="display:none;">Next Patient</button>
+    </div>
+</div>
+
+<script>
+var state = { 
+    score: 0, round: 0, streak: 0, currentPatient: null, answered: false, 
+    totalCorrect: 0, totalWrong: 0, level: 1 
+};
+
+var ALL_PATIENTS = [
+    { name: 'Gate-CZ', symptom: 'Coherent Noise on CZ Gate', tags: ['coherent'], tagClass: 'red', dept: 'twirl', learn: 'Twirl converts coherent noise to stochastic Pauli channels. This is the first step in any Samplomatic pipeline.' },
+    { name: 'Gate-CX', symptom: 'Coherent Drift on CX Gate', tags: ['coherent', 'drift'], tagClass: 'red', dept: 'twirl', learn: 'Twirl is a prerequisite for PEA and PEC — they assume Pauli-channel noise.' },
+    { name: 'Unknown-Qubit', symptom: 'Uncharacterized Noise Source', tags: ['unknown'], tagClass: 'blue', dept: 'inject', learn: 'InjectNoise declares slots. NoiseLearnerV3 then runs characterization circuits to learn the Pauli-Lindblad model.' },
+    { name: 'Brickwork-Layer', symptom: 'Crosstalk Between Qubits', tags: ['crosstalk', 'unknown'], tagClass: 'blue', dept: 'inject', learn: 'NoiseLearnerV3 returns per-layer rates. Each CZ gate contributes 15 generators.' },
+    { name: 'Measurement-Q0', symptom: 'Readout Error on Measurement', tags: ['readout'], tagClass: 'purple', dept: 'basis', learn: 'ChangeBasis rotates the measurement basis. Essential when PNA produces non-Z terms.' },
+    { name: 'Observable-XZ', symptom: 'Non-Z Basis Required', tags: ['non-z', 'measurement'], tagClass: 'purple', dept: 'basis', learn: 'ChangeBasis uses symplectic encoding: I=0, Z=1, X=2, Y=3.' },
+    { name: 'Deep-Mirror-4q', symptom: 'Multi-Layer Noise Profile', tags: ['multi-layer', 'deep'], tagClass: 'orange', dept: 'learner', learn: 'NoiseLearnerV3 fits fidelity-vs-depth decay to extract per-generator rates.' },
+    { name: 'Trotter-Circuit', symptom: 'Layered Noise in Trotter Evolution', tags: ['multi-layer', 'deep'], tagClass: 'orange', dept: 'learner', learn: 'Even equivalent-looking layers can have different noise profiles.' },
+    { name: 'Ising-Chain-10q', symptom: 'Utility-Scale 10-Qubit Circuit', tags: ['utility-scale'], tagClass: 'orange', dept: 'pna', learn: 'PNA rewrites the observable to absorb anti-noise, keeping the circuit unchanged.' },
+    { name: 'Ising-Mirror-15q', symptom: 'Utility-Scale Full Stack', tags: ['utility-scale', 'multi-layer'], tagClass: 'orange', dept: 'pna', learn: 'PNA generates a noise-mitigating observable O-tilde with anti-noise terms.' },
+    { name: 'Local-Z7-Observable', symptom: 'Local Observable on Qubit 7', tags: ['local'], tagClass: 'green', dept: 'slc', learn: 'SLC prunes noise generators outside the observable lightcone.' },
+    { name: 'Single-Qubit-Measurement', symptom: 'Narrow Lightcone Observable', tags: ['local', 'lightcone'], tagClass: 'green', dept: 'slc', learn: 'For local observables, SLC reduces gamma-squared by orders of magnitude.' },
+];
+
+// Code snippets for Level 2
+var CODE_SNIPPETS = {
+    twirl: [
+        'with circuit.box(annotations=[Twirl()]):\n    circuit.cz(0, 1)',
+        'boxing_pm = generate_boxing_pass_manager(\n    enable_gates=True,\n    twirling_strategy="active"\n)',
+        'twirl_only_pm = generate_boxing_pass_manager(\n    enable_gates=True,\n    enable_measures=True,\n    twirling_strategy="active"\n)'
+    ],
+    inject: [
+        'noise_learning_boxing_pm = generate_boxing_pass_manager(\n    enable_gates=True,\n    inject_noise_targets="gates",\n    inject_noise_strategy="no_modification"\n)',
+        'learner = NoiseLearnerV3(backend, nl_options)\nlearner_job = learner.run(unique_layers)',
+        'refs_to_noise = noise_result.to_dict(\n    unique_layers, require_refs=False\n)'
+    ],
+    basis: [
+        'change_basis_pm = generate_boxing_pass_manager(\n    enable_gates=True,\n    measure_annotations="all"\n)',
+        'meas_bases, bases_reverser = get_measurement_bases(\n    observable\n)',
+        'samplex_inputs |= {"basis_changes":\n    {basis_ref: bases_broadcastable}}'
+    ],
+    learner: [
+        'nl_options = NoiseLearnerV3Options(\n    num_randomizations=16,\n    layer_pair_depths=[1, 2, 4, 8]\n)',
+        'unique_layers = find_unique_box_instructions(\n    boxed_circuit,\n    undress_boxes=True\n)',
+        'generators = plm.to_sparse_list()\ngenerators.sort(key=lambda g: -abs(g[2]))'
+    ],
+    pna: [
+        'obs_tilde = generate_noise_mitigating_observable(\n    boxed_circuit,\n    observable_isa,\n    refs_to_noise_models\n)',
+        'pna_boxing_pm = generate_boxing_pass_manager(\n    inject_noise_strategy="uniform_modification"\n)',
+        'results = executor_expectation_values(\n    meas, bases_reverser,\n    measurement_flips=flips\n)'
+    ],
+    slc: [
+        'forward_bounds = compute_forward_bounds(\n    boxed_circuit,\n    noise_model_paulis,\n    observable_isa\n)',
+        'local_scales, cost, bias = compute_local_scales(\n    boxed_circuit,\n    merged_bounds,\n    refs_to_noise_models\n)',
+        'slc_boxing_pm = generate_boxing_pass_manager(\n    inject_noise_strategy="individual_modification"\n)'
+    ]
+};
+
+var usedPatients = [];
+var currentCodeOptions = [];
+
+function switchLevel() {
+    state.level = state.level === 1 ? 2 : 1;
+    usedPatients = [];
+    
+    if (state.level === 1) {
+        document.getElementById('subtitle').textContent = 'Match the noise symptom to the correct treatment';
+        document.getElementById('levelBadge').textContent = 'Level 1: Match Symptoms';
+        document.getElementById('levelBadge').className = 'level-badge';
+        document.getElementById('treatmentGrid').style.display = 'grid';
+        document.getElementById('codeGrid').style.display = 'none';
+        document.getElementById('btnSwitchLevel').textContent = 'Switch to Code Level';
+    } else {
+        document.getElementById('subtitle').textContent = 'Pick the correct code for the Samplomatic annotation';
+        document.getElementById('levelBadge').textContent = 'Level 2: Match Code';
+        document.getElementById('levelBadge').className = 'level-badge code';
+        document.getElementById('treatmentGrid').style.display = 'none';
+        document.getElementById('codeGrid').style.display = 'grid';
+        document.getElementById('btnSwitchLevel').textContent = 'Switch to Symptom Level';
+    }
+    
+    state.score = 0;
+    state.round = 0;
+    state.streak = 0;
+    state.totalCorrect = 0;
+    state.totalWrong = 0;
+    state.answered = false;
+    state.currentPatient = null;
+    
+    document.getElementById('scoreDisplay').textContent = '0';
+    document.getElementById('roundDisplay').textContent = '1';
+    document.getElementById('streakDisplay').textContent = '0';
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('learn').textContent = '';
+    document.getElementById('btnNext').style.display = 'none';
+    document.querySelectorAll('.treatment-card, .code-card').forEach(function(c) { c.classList.remove('correct', 'wrong'); });
+    
+    showPatient();
+}
+
+function resetGame() {
+    usedPatients = [];
+    state.score = 0;
+    state.round = 0;
+    state.streak = 0;
+    state.totalCorrect = 0;
+    state.totalWrong = 0;
+    state.answered = false;
+    state.currentPatient = null;
+    document.getElementById('scoreDisplay').textContent = '0';
+    document.getElementById('roundDisplay').textContent = '1';
+    document.getElementById('streakDisplay').textContent = '0';
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('learn').textContent = '';
+    document.getElementById('btnNext').style.display = 'none';
+    document.querySelectorAll('.treatment-card, .code-card').forEach(function(c) { c.classList.remove('correct', 'wrong'); });
+    showPatient();
+}
+
+function getRandomPatient() {
+    if (usedPatients.length >= ALL_PATIENTS.length) {
+        usedPatients = [];
+    }
+    var available = ALL_PATIENTS.filter(function(p) { return !usedPatients.includes(p); });
+    var patient = available[Math.floor(Math.random() * available.length)];
+    usedPatients.push(patient);
+    return patient;
+}
+
+function showPatient() {
+    state.answered = false;
+    state.currentPatient = getRandomPatient();
+    state.round++;
+
+    document.getElementById('patientName').textContent = state.currentPatient.name;
+    document.getElementById('patientSymptom').textContent = state.currentPatient.symptom;
+
+    var tagsHTML = '';
+    state.currentPatient.tags.forEach(function(t) {
+        tagsHTML += '<span class="tag ' + state.currentPatient.tagClass + '">' + t + '</span>';
+    });
+    document.getElementById('patientTags').innerHTML = tagsHTML;
+
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('learn').textContent = '';
+    document.getElementById('btnNext').style.display = 'none';
+
+    document.querySelectorAll('.treatment-card, .code-card').forEach(function(card) {
+        card.classList.remove('correct', 'wrong');
+    });
+
+    document.getElementById('roundDisplay').textContent = state.round;
+    document.getElementById('streakDisplay').textContent = state.streak;
+
+    // If Level 2, build code options
+    if (state.level === 2) {
+        buildCodeOptions();
+    }
+}
+
+function buildCodeOptions() {
+    var correctDept = state.currentPatient.dept;
+    var correctCodes = CODE_SNIPPETS[correctDept];
+    var correctCode = correctCodes[Math.floor(Math.random() * correctCodes.length)];
+    
+    // Collect wrong options from other departments
+    var allWrongCodes = [];
+    Object.keys(CODE_SNIPPETS).forEach(function(d) {
+        if (d !== correctDept) {
+            CODE_SNIPPETS[d].forEach(function(c) { allWrongCodes.push(c); });
+        }
+    });
+    
+    // Shuffle and pick 3 wrong codes
+    shuffleArray(allWrongCodes);
+    var wrongCodes = allWrongCodes.slice(0, 3);
+    
+    // Combine and shuffle
+    currentCodeOptions = [{ code: correctCode, correct: true }];
+    wrongCodes.forEach(function(c) {
+        currentCodeOptions.push({ code: c, correct: false });
+    });
+    shuffleArray(currentCodeOptions);
+    
+    // Render code cards
+    var grid = document.getElementById('codeGrid');
+    grid.innerHTML = '';
+    currentCodeOptions.forEach(function(opt, i) {
+        var card = document.createElement('div');
+        card.className = 'code-card';
+        card.dataset.index = i;
+        card.textContent = opt.code;
+        card.addEventListener('click', function() {
+            handleCodeChoice(i, card);
+        });
+        grid.appendChild(card);
+    });
+}
+
+function handleCodeChoice(index, cardEl) {
+    if (state.answered) return;
+    state.answered = true;
+    
+    var isCorrect = currentCodeOptions[index].correct;
+    
+    if (isCorrect) {
+        state.totalCorrect++;
+        state.score += 15 + state.streak * 3;
+        state.streak++;
+        cardEl.classList.add('correct');
+        document.getElementById('feedback').textContent = 'Correct! +' + (15 + (state.streak - 1) * 3) + ' points';
+        document.getElementById('feedback').className = 'feedback correct';
+    } else {
+        state.totalWrong++;
+        state.streak = 0;
+        cardEl.classList.add('wrong');
+        document.getElementById('feedback').textContent = 'Wrong code! This is for ' + getDeptName(state.currentPatient.dept);
+        document.getElementById('feedback').className = 'feedback wrong';
+        // Highlight correct code
+        currentCodeOptions.forEach(function(opt, i) {
+            if (opt.correct) {
+                document.querySelectorAll('#codeGrid .code-card')[i].classList.add('correct');
+            }
+        });
+    }
+    
+    document.getElementById('learn').textContent = state.currentPatient.learn;
+    document.getElementById('scoreDisplay').textContent = state.score;
+    document.getElementById('streakDisplay').textContent = state.streak;
+    document.getElementById('btnNext').style.display = '';
+    
+    if (usedPatients.length >= ALL_PATIENTS.length) {
+        setTimeout(showComplete, 1500);
+    }
+}
+
+function handleChoice(deptId, cardEl) {
+    if (state.answered) return;
+    state.answered = true;
+
+    var isCorrect = (deptId === state.currentPatient.dept);
+
+    if (isCorrect) {
+        state.totalCorrect++;
+        state.score += 10 + state.streak * 2;
+        state.streak++;
+        cardEl.classList.add('correct');
+        document.getElementById('feedback').textContent = 'Correct! +' + (10 + (state.streak - 1) * 2) + ' points';
+        document.getElementById('feedback').className = 'feedback correct';
+    } else {
+        state.totalWrong++;
+        state.streak = 0;
+        cardEl.classList.add('wrong');
+        document.getElementById('feedback').textContent = 'Wrong! Correct: ' + getDeptName(state.currentPatient.dept);
+        document.getElementById('feedback').className = 'feedback wrong';
+        var correctCard = document.querySelector('[data-dept="' + state.currentPatient.dept + '"]');
+        if (correctCard) correctCard.classList.add('correct');
+    }
+
+    document.getElementById('learn').textContent = state.currentPatient.learn;
+    document.getElementById('scoreDisplay').textContent = state.score;
+    document.getElementById('streakDisplay').textContent = state.streak;
+    document.getElementById('btnNext').style.display = '';
+    
+    if (usedPatients.length >= ALL_PATIENTS.length) {
+        setTimeout(showComplete, 1500);
+    }
+}
+
+function showComplete() {
+    var overlay = document.createElement('div');
+    overlay.className = 'complete-overlay';
+    overlay.innerHTML = '<div class="complete-card">' +
+        '<div class="big">🏆</div>' +
+        '<h2>All Patients Treated!</h2>' +
+        '<p>Level: ' + (state.level === 1 ? 'Symptom Matching' : 'Code Matching') + '<br>' +
+        'Score: ' + state.score + '<br>' +
+        'Correct: ' + state.totalCorrect + ' | Wrong: ' + state.totalWrong + '</p>' +
+        '<p style="font-size:11px;color:#4fc3f7;">Samplomatic tools mastered:<br>' +
+        'Twirl | InjectNoise | ChangeBasis | NoiseLearnerV3 | PNA | SLC</p>' +
+        '<button class="btn btn-next" onclick="this.parentElement.parentElement.remove(); resetGame();">Play Again</button>' +
+        '<button class="btn btn-level" style="margin-top:8px;" onclick="this.parentElement.parentElement.remove(); switchLevel();">Switch Level</button>' +
+        '</div>';
+    document.body.appendChild(overlay);
+}
+
+function getDeptName(deptId) {
+    var map = { twirl: 'Twirl', inject: 'InjectNoise / Diagnostic Scan', basis: 'ChangeBasis / Repositioning', learner: 'NoiseLearnerV3 / Pathology Lab', pna: 'PNA / Treatment Plan', slc: 'SLC / Targeted Therapy' };
+    return map[deptId] || deptId;
+}
+
+function shuffleArray(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = arr[i]; arr[i] = arr[j]; arr[j] = temp;
+    }
+}
+
+document.querySelectorAll('.treatment-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+        if (state.level === 1) handleChoice(card.dataset.dept, card);
+    });
+});
+
+document.getElementById('btnNext').addEventListener('click', showPatient);
+document.getElementById('btnSkip').addEventListener('click', function() {
+    if (state.answered) return;
+    state.answered = true;
+    state.totalWrong++;
+    state.streak = 0;
+    document.getElementById('feedback').textContent = 'Skipped. Answer: ' + getDeptName(state.currentPatient.dept);
+    document.getElementById('feedback').className = 'feedback wrong';
+    document.getElementById('learn').textContent = state.currentPatient.learn;
+    if (state.level === 1) {
+        var correctCard = document.querySelector('[data-dept="' + state.currentPatient.dept + '"]');
+        if (correctCard) correctCard.classList.add('correct');
+    } else {
+        currentCodeOptions.forEach(function(opt, i) {
+            if (opt.correct) document.querySelectorAll('#codeGrid .code-card')[i].classList.add('correct');
+        });
+    }
+    document.getElementById('streakDisplay').textContent = '0';
+    document.getElementById('btnNext').style.display = '';
+});
+document.getElementById('btnReset').addEventListener('click', resetGame);
+document.getElementById('btnSwitchLevel').addEventListener('click', switchLevel);
+
+showPatient();
+</script>
+</body>
+</html>

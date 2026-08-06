@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0e1a;
+            color: #e0e8f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid rgba(100, 150, 255, 0.08);
+        }
+        h1 {
+            font-size: 28px;
+            text-align: center;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8899bb;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .back-link {
+            display: inline-block;
+            color: #4fc3f7;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+        .card .number {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .card .number.gold {
+            color: #ffca28;
+        }
+        .card .number.green {
+            color: #00e676;
+        }
+        .card .number.blue {
+            color: #4fc3f7;
+        }
+        .card .number.pink {
+            color: #ff6b6b;
+        }
+        .card .label {
+            font-size: 12px;
+            color: #8899bb;
+            margin-top: 4px;
+        }
+        .level-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .level-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+        }
+        .level-item .name {
+            font-size: 14px;
+            color: #c0d0ff;
+        }
+        .level-item .status {
+            font-size: 13px;
+            padding: 2px 12px;
+            border-radius: 12px;
+        }
+        .status.done {
+            color: #00e676;
+            background: rgba(0, 230, 118, 0.1);
+        }
+        .status.pending {
+            color: #8899bb;
+            background: rgba(136, 153, 187, 0.1);
+        }
+        .footer {
+            text-align: center;
+            color: #445566;
+            font-size: 12px;
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .footer a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+        .reset-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 23, 68, 0.15);
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .reset-btn:hover {
+            background: rgba(255, 23, 68, 0.25);
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Home</a>
+
+        <h1>📊 Your Progress</h1>
+        <p class="subtitle">Track your mastery of Samplomatic concepts</p>
+
+        <div class="grid" id="statsGrid">
+            <div class="card">
+                <div class="number gold" id="levelsDone">0/6</div>
+                <div class="label">Levels Complete</div>
+            </div>
+            <div class="card">
+                <div class="number green" id="totalScore">0</div>
+                <div class="label">Total Score</div>
+            </div>
+            <div class="card">
+                <div class="number blue" id="accuracy">0%</div>
+                <div class="label">Accuracy</div>
+            </div>
+            <div class="card">
+                <div class="number pink" id="questionsDone">0</div>
+                <div class="label">Questions Answered</div>
+            </div>
+        </div>
+
+        <h3 style="color:#fff; font-size:16px; margin-top:8px;">📚 Level Status</h3>
+        <div class="level-list" id="levelList">
+            <!-- Rendered by JS -->
+        </div>
+
+        <div style="text-align:center; margin-top:20px;">
+            <button class="reset-btn" onclick="resetAll()">🗑️ Reset All Progress</button>
+        </div>
+
+        <div class="footer">
+            🏥 <a href="game.html">Play the Game</a> &bull;
+            <a href="quizzes.html">Take Quizzes</a>
+        </div>
+    </div>
+
+    <script>
+        const LEVEL_NAMES = {
+            1: 'Remember',
+            2: 'Understand',
+            3: 'Apply',
+            4: 'Analyze',
+            5: 'Evaluate',
+            6: 'Create'
+        };
+
+        function getCompleted() {
+            try {
+                return JSON.parse(localStorage.getItem('slc_quiz_completed') || '[]');
+            } catch { return []; }
+        }
+
+        function getScore() {
+            try {
+                return parseInt(localStorage.getItem('slc_quiz_score') || '0');
+            } catch { return 0; }
+        }
+
+        function render() {
+            const completed = getCompleted();
+            const score = getScore();
+
+            document.getElementById('levelsDone').textContent = `${completed.length}/6`;
+            document.getElementById('totalScore').textContent = score;
+
+            const totalQ = Object.values(QUIZ_DATA || {}).reduce((s, l) => s + l.questions.length, 0);
+            const doneQ = completed.reduce((s, l) => s + (QUIZ_DATA[l]?.questions?.length || 0), 0);
+            document.getElementById('questionsDone').textContent = doneQ;
+
+            const acc = doneQ > 0 ? Math.round((score / (doneQ * 10)) * 100) : 0;
+            document.getElementById('accuracy').textContent = Math.min(acc, 100) + '%';
+
+            const list = document.getElementById('levelList');
+            list.innerHTML = '';
+            for (let i = 1; i <= 6; i++) {
+                const done = completed.includes(i);
+                list.innerHTML += `
+                    <div class="level-item">
+                        <span class="name">${i}️⃣ ${LEVEL_NAMES[i]}</span>
+                        <span class="status ${done ? 'done' : 'pending'}">
+                            ${done ? '✅ Complete' : '⏳ Pending'}
+                        </span>
+                    </div>
+                `;
+            }
+        }
+
+        function resetAll() {
+            if (confirm('Reset all progress? This cannot be undone.')) {
+                localStorage.removeItem('slc_quiz_completed');
+                localStorage.removeItem('slc_quiz_score');
+                render();
+                alert('✅ Progress reset!');
+            }
+        }
+
+        // Dummy QUIZ_DATA for progress display
+        const QUIZ_DATA = {
+            1: { questions: [{}] },
+            2: { questions: [{}] },
+            3: { questions: [{}] },
+            4: { questions: [{}] },
+            5: { questions: [{}] },
+            6: { questions: [{}] }
+        };
+
+        render();
+        console.log('📊 Progress tracker loaded!');
+    </script>
+</body>
+</html>
