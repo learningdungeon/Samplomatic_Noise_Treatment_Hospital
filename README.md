@@ -1,6 +1,6 @@
 # Samplomatic Noise Treatment Hospital
 
-An interactive educational game that teaches **Samplomatic** — Qiskit's framework for advanced quantum error mitigation on IBM Quantum hardware.
+An interactive educational game that teaches **index** — Qiskit's framework for advanced quantum error mitigation on IBM Quantum hardware.
 
 Built for the **WISER Education Challenge 2026**.
 
